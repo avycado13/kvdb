@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "flask>=3.1.0",
+    "pyotp>=2.9.0",
 ]
 
 

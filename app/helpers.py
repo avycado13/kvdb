@@ -1,4 +1,12 @@
+# app/helpers.py
+"""
+Helper functions for KVDB application.
+This module provides utility functions for file handling, ID validation,
+signature generation, rate limiting, and data management.
+"""
+from typing import Optional
 from flask import current_app
+import base64
 import hmac
 import os
 import re
@@ -33,25 +41,68 @@ def is_valid_id(id):
     return re.fullmatch(r"[a-f0-9]{32}", id) is not None
 
 
-def sign_id(id):
-    return hmac.new(current_app.config["SECRET_KEY"], id.encode(), "sha256").hexdigest()
+def sign_id(id: str, scope: str | list[str] = "") -> str:
+    scope_str = canonical_scope(scope)
+    msg = f"{id}:{scope_str}".encode()
+    return hmac.new(current_app.config["SECRET_KEY"], msg, "sha256").hexdigest()
 
+def create_scoped_token(id: str, scopes: str | list[str], expires_in: int = 3600) -> str:
+    payload = {
+        "id": id,
+        "scopes": canonical_scope(scopes),
+        "exp": int((datetime.now(timezone.utc) + timedelta(seconds=expires_in)).timestamp())
+    }
+    payload_json = json.dumps(payload, separators=(",", ":")).encode()
+    payload_b64 = base64.urlsafe_b64encode(payload_json).rstrip(b"=")
+    sig = hmac.new(current_app.config["SECRET_KEY"], payload_b64, "sha256").hexdigest()
+    return f"{payload_b64.decode()}.{sig}"
+    
+def canonical_scope(scope: str | list[str]) -> str:
+    if isinstance(scope, str):
+        scopes = [s.strip() for s in scope.split(",")]
+    else:
+        scopes = scope
+    return ",".join(sorted(set(scopes)))
 
-def verify_signature(id, signature):
-    return hmac.compare_digest(sign_id(id), signature or "")
+def verify_signature(id: str, signature: str, required_scope: str, provided_scope: str) -> bool:
+    scope_str = canonical_scope(provided_scope)
+    expected_sig = sign_id(id, scope_str)
+    if not hmac.compare_digest(expected_sig, signature or ""):
+        return False
+    return required_scope in scope_str.split(",")
 
+def verify_scoped_token(token: str, required_scope: str) -> dict | None:
+    try:
+        payload_b64, sig = token.split(".")
+        payload_json = base64.urlsafe_b64decode(payload_b64 + "==").decode()
+        expected_sig = hmac.new(current_app.config["SECRET_KEY"], payload_b64.encode(), "sha256").hexdigest()
 
-def load_data(id):
+        if not hmac.compare_digest(expected_sig, sig):
+            return None
+        
+        payload = json.loads(payload_json)
+        if int(datetime.now(timezone.utc).timestamp()) > payload["exp"]:
+            return None
+        
+        scopes = payload["scopes"].split(",")
+        if required_scope not in scopes:
+            return None
+        
+        return payload  # contains id, scopes, exp
+    except Exception:
+        return None
+
+def load_data(id: str) -> dict:
     with open(filepath(id), "r") as f:
         return json.load(f)
 
 
-def save_data(id, data):
+def save_data(id: str, data: dict):
     with open(filepath(id), "w") as f:
         json.dump(data, f, indent=2)
 
 
-def rate_limited(ip, rate_limit, id=None):
+def rate_limited(ip: str, rate_limit: dict, id: Optional[str] = None) -> bool:
     """Rate limit by IP and optionally by ID."""
     now = datetime.now(timezone.utc)
     

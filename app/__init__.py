@@ -1,3 +1,12 @@
+# app/__init__.py
+"""
+Main application module for KVDB.
+This module initializes the Flask app, sets up routes, and handles
+data management, including creating, reading, updating, and deleting
+records in the key-value database.
+"""
+import json
+from math import perm
 from flask import jsonify, request, render_template_string, Flask
 import hmac
 import os
@@ -7,7 +16,9 @@ from datetime import datetime, timedelta, timezone
 from app.helpers import (
     is_valid_id,
     sign_id,
+    create_scoped_token,
     verify_signature,
+    verify_scoped_token,
     load_data,
     save_data,
     rate_limited,
@@ -41,35 +52,37 @@ def create():
         
     id = os.urandom(16).hex()
     password = request.form.get("password")
-    expires_in = int(request.form.get("expires", 0))
+    expires_in = int(request.form.get("expires", float("inf")))
+    if expires_in < 0:
+        return {"error": "Expiration time must be non-negative"}, 400
+    
+    token_scopes = request.form.get("scopes", "").split(",")
+    if not token_scopes:
+        token_scopes = ["read", "write", "delete", "clear"]
 
     record = {
         "data": {},
-        "password": hmac.new(
-            app.config["SECRET_KEY"], password.encode(), "sha256"
-        ).hexdigest()
-        if password
-        else None,
-        "expires_at": (datetime.utcnow() + timedelta(seconds=expires_in)).isoformat()
+        "password": sign_id(password.encode()) if password else None,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat()
         if expires_in
         else None,
         "audit_log": [],
     }
     save_data(id, record)
-    signature = sign_id(id)
-    return jsonify({"id": id, "signature": signature}), 201
+    token = create_scoped_token(id, token_scopes, expires_in)
+    return jsonify({"id": id, "token": token}), 201
 
 
 @app.route("/<id>")
 def get(id):
-    if not is_valid_id(id):
-        return {"error": "Invalid ID format"}, 400
     if rate_limited(request.remote_addr, RATE_LIMIT, id):
         return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
 
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    token = request.args.get("token")
+    if not verify_scoped_token(token, "read"):
+        return {"error": "Invalid token"}, 403
 
     try:
         data = load_data(id)
@@ -99,26 +112,20 @@ def get(id):
 
     response_data = {k: v["value"] for k, v in data.get("data", {}).items()}
     if request.accept_mimetypes.accept_html:
-        return render_template_string(
-            """
-            <h1>Stored Data</h1>
-            <ul>{% for k,v in data.items() %}<li><b>{{k}}:</b> {{v}}</li>{% endfor %}</ul>
-        """,
-            data=response_data,
-        )
+        return jsonify(response_data)
     return {"data": response_data}, 200
 
 
 @app.route("/set/<id>", methods=["POST"])
 def set_value(id):
-    if not is_valid_id(id):
-        return {"error": "Invalid ID format"}, 400
     if rate_limited(request.remote_addr, RATE_LIMIT, id):
         return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
 
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    token = request.args.get("token")
+    if not verify_scoped_token(token, "write"):
+        return {"error": "Write permission denied"}, 403
 
     try:
         data = load_data(id)
@@ -161,11 +168,16 @@ def set_value(id):
 
 @app.route("/get/<id>/<key>")
 def get_key(id, key):
-    signature = request.args.get("sig")
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    
+    token = request.args.get("token")
     password = request.args.get("password")
 
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    if not verify_scoped_token(token, "read"):
+        return {"error": "Invalid read token"}, 403
 
     try:
         data = load_data(id)
@@ -200,9 +212,14 @@ def get_key(id, key):
 
 @app.route("/delete/<id>", methods=["POST"])
 def delete_id(id):
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    token = request.args.get("token")
+
+    if not verify_scoped_token(token, "clear"):
+        return {"error": "Delete permission denied"}, 403
     try:
         os.remove(filepath(id))
         return {"message": "ID deleted successfully"}, 200
@@ -212,9 +229,14 @@ def delete_id(id):
 
 @app.route("/delete/<id>/<key>", methods=["POST"])
 def delete_key(id, key):
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    token = request.args.get("token")
+
+    if not verify_scoped_token(token, "delete"):
+        return {"error": "Delete permission denied"}, 403
     try:
         data = load_data(id)
         if key in data["data"]:
@@ -230,9 +252,13 @@ def delete_key(id, key):
 
 @app.route("/list/<id>")
 def list_keys(id):
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    token = request.args.get("token")
+    if not verify_scoped_token(token, "read"):
+        return {"error": "Invalid read token"}, 403
     try:
         data = load_data(id)
         return {"keys": list(data["data"].keys())}, 200
@@ -242,9 +268,13 @@ def list_keys(id):
 
 @app.route("/bulkset/<id>", methods=["POST"])
 def bulk_set(id):
-    signature = request.args.get("sig")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    token = request.args.get("token")
+    if not verify_scoped_token(token, "write"):
+        return {"error": "Invalid write token"}, 403
 
     try:
         incoming = request.get_json()
@@ -290,23 +320,3 @@ def clear_expired():
         return {"message": "Expired data cleared successfully"}, 200
     except Exception as e:
         return {"error": str(e)}, 500
-    
-@app.route("/gen_public_link/<id>")
-def gen_public_link(id):
-    signature = request.args.get("sig")
-    key = request.form.get("key")
-    if not verify_signature(id, signature):
-        return {"error": "Invalid signature"}, 403
-    try:
-        data = load_data(id)
-        if key not in data["data"]:
-            return {"error": "Key not found"}, 404
-
-        entry = data["data"][key]
-        if entry.get("expires_at") and datetime.now(timezone.utc) > datetime.fromisoformat(entry["expires_at"]):
-            return {"error": "Key expired"}, 410
-
-        public_link = f"{request.url_root}get/{id}/{key}?sig={signature}"
-        return {"public_link": public_link}, 200
-    except FileNotFoundError:
-        return {"error": "ID not found"}, 404
