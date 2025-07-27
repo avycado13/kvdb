@@ -1,0 +1,19 @@
+[project]
+name = "kvdb"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "avycado13", email = "108358183+avycado13@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.0",
+]
+
+
+[dependency-groups]
+server = [
+    "flask>=3.1.0",
+    "flask-httpauth>=4.8.0",
+]
