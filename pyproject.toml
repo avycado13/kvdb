@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "flask>=3.1.0",
     "flask-pydantic>=0.13.1",
+    "gunicorn>=23.0.0",
     "pyotp>=2.9.0",
 ]
 
