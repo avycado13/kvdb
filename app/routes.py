@@ -702,3 +702,18 @@ def swagger_spec():
 @bp.route("/swagger")
 def swagger_ui():
     return render_template("swagger_ui.html")
+
+@bp.route("/dashboard")
+@bp.route("/dash")
+def dashboard():
+    return render_template("dashboard.html")
+
+
+@bp.route("/dashboard/create")
+def dashboard_create():
+    return render_template("dashboard_create.html")
+
+
+@bp.route("/dashboard/manage")
+def dashboard_manage():
+    return render_template("dashboard_manage.html")

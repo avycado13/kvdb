@@ -1,221 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KVDB API Endpoints</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
-</head>
-<body>
-    <div class="container my-5">
-        <h1 class="mb-4 text-center">KVDB API Endpoints</h1>
-        <div class="table-responsive">
-            <table class="table table-striped table-bordered align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Method</th>
-                        <th>Endpoint</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>KVDB API Endpoints</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div>
+            <h1>KVDB API Endpoints</h1>
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
                 </table>
             </div>
-
-            <div class="accordion" id="apiAccordion">
+            <div id="apiAccordion">
                 <!-- Create -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingCreate">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCreate" aria-expanded="false" aria-controls="collapseCreate">
-                            POST /create
-                        </button>
+                <div>
+                    <h2 id="headingCreate">
+                        <button type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseCreate"
+                                aria-expanded="false"
+                                aria-controls="collapseCreate">POST /create</button>
                     </h2>
-                    <div id="collapseCreate" class="accordion-collapse collapse" aria-labelledby="headingCreate" data-bs-parent="#apiAccordion">
-                        <div class="accordion-body">
+                    <div id="collapseCreate"
+                         aria-labelledby="headingCreate"
+                         data-bs-parent="#apiAccordion">
+                        <div>
                             <form onsubmit="submitCreate(event)">
-                                <div class="mb-2">
-                                    <label for="id" class="form-label">ID</label>
-                                    <input type="text" class="form-control" id="id" name="id" value="123abc" required>
+                                <div>
+                                    <label for="id">ID</label>
+                                    <input type="text"  id="id" name="id" value="123abc" required>
                                 </div>
-                                <div class="mb-2">
-                                    <label for="token" class="form-label">Token</label>
-                                    <input type="text" class="form-control" id="token" name="token" placeholder="optional">
+                                <div>
+                                    <label for="token">Token</label>
+                                    <input type="text"  id="token" name="token" placeholder="optional">
                                 </div>
-                                <button type="submit" class="btn btn-primary">Try it</button>
+                                <button type="submit">Try it</button>
                             </form>
-                            <pre id="responseCreate" class="mt-3"></pre>
+                            <pre id="responseCreate"></pre>
                         </div>
                     </div>
-
                 </div>
-              <!-- Example for GET /get/<id>/<key> -->
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="headingGetKey">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGetKey" aria-expanded="false" aria-controls="collapseGetKey">
-                    GET /get/&lt;id&gt;/&lt;key&gt;
-                  </button>
-                </h2>
-                <div id="collapseGetKey" class="accordion-collapse collapse" aria-labelledby="headingGetKey" data-bs-parent="#apiAccordion">
-                  <div class="accordion-body">
-                    <form onsubmit="submitGetKey(event)">
-                      <div class="mb-2">
-                        <label for="id" class="form-label">ID</label>
-                        <input type="text" class="form-control" id="id" name="id" value="123abc" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="key" class="form-label">Key</label>
-                        <input type="text" class="form-control" id="key" name="key" value="example-key" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="token" class="form-label">Token</label>
-                        <input type="text" class="form-control" id="token" name="token" placeholder="optional">
-                      </div>
-                      <div class="mb-2">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="text" class="form-control" id="password" name="password" placeholder="optional">
-                      </div>
-                      <button type="submit" class="btn btn-primary">Try it</button>
-                    </form>
-                    <pre id="responseGetKey" class="mt-3"></pre>
-                  </div>
+                <!-- Example for GET /get/<id>/<key> -->
+                <div>
+                    <h2 id="headingGetKey">
+                        <button type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseGetKey"
+                                aria-expanded="false"
+                                aria-controls="collapseGetKey">GET /get/&lt;id&gt;/&lt;key&gt;</button>
+                    </h2>
+                    <div id="collapseGetKey"
+                         aria-labelledby="headingGetKey"
+                         data-bs-parent="#apiAccordion">
+                        <div>
+                            <form onsubmit="submitGetKey(event)">
+                                <div>
+                                    <label for="id">ID</label>
+                                    <input type="text"  id="id" name="id" value="123abc" required>
+                                </div>
+                                <div>
+                                    <label for="key">Key</label>
+                                    <input type="text"  id="key" name="key" value="example-key" required>
+                                </div>
+                                <div>
+                                    <label for="token">Token</label>
+                                    <input type="text"  id="token" name="token" placeholder="optional">
+                                </div>
+                                <div>
+                                    <label for="password">Password</label>
+                                    <input type="text"  id="password" name="password" placeholder="optional">
+                                </div>
+                                <button type="submit">Try it</button>
+                            </form>
+                            <pre id="responseGetKey"></pre>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <!-- Example for POST /set/<id>/<key> -->
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="headingSetKey">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSetKey" aria-expanded="false" aria-controls="collapseSetKey">
-                    POST /set/&lt;id&gt;/&lt;key&gt;
-                  </button>
-                </h2>
-                <div id="collapseSetKey" class="accordion-collapse collapse" aria-labelledby="headingSetKey" data-bs-parent="#apiAccordion">
-                  <div class="accordion-body">
-                    <form onsubmit="submitSetKey(event)">
-                      <div class="mb-2">
-                        <label for="id" class="form-label">ID</label>
-                        <input type="text" class="form-control" id="id" name="id" value="123abc" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="key" class="form-label">Key</label>
-                        <input type="text" class="form-control" id="key" name="key" value="example-key" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="value" class="form-label">Value</label>
-                        <input type="text" class="form-control" id="value" name="value" value="example-value" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="token" class="form-label">Token</label>
-                        <input type="text" class="form-control" id="token" name="token" placeholder="optional">
-                      </div>
-                      <div class="mb-2">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="text" class="form-control" id="password" name="password" placeholder="optional">
-                      </div>
-                      <button type="submit" class="btn btn-primary">Try it</button>
-                    </form>
-                    <pre id="responseSetKey" class="mt-3"></pre>
-                  </div>
+                <!-- Example for POST /set/<id>/<key> -->
+                <div>
+                    <h2 id="headingSetKey">
+                        <button type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseSetKey"
+                                aria-expanded="false"
+                                aria-controls="collapseSetKey">POST /set/&lt;id&gt;/&lt;key&gt;</button>
+                    </h2>
+                    <div id="collapseSetKey"
+                         aria-labelledby="headingSetKey"
+                         data-bs-parent="#apiAccordion">
+                        <div>
+                            <form onsubmit="submitSetKey(event)">
+                                <div>
+                                    <label for="id">ID</label>
+                                    <input type="text"  id="id" name="id" value="123abc" required>
+                                </div>
+                                <div>
+                                    <label for="key">Key</label>
+                                    <input type="text"  id="key" name="key" value="example-key" required>
+                                </div>
+                                <div>
+                                    <label for="value">Value</label>
+                                    <input type="text"  id="value" name="value" value="example-value" required>
+                                </div>
+                                <div>
+                                    <label for="token">Token</label>
+                                    <input type="text"  id="token" name="token" placeholder="optional">
+                                </div>
+                                <div>
+                                    <label for="password">Password</label>
+                                    <input type="text"  id="password" name="password" placeholder="optional">
+                                </div>
+                                <button type="submit">Try it</button>
+                            </form>
+                            <pre id="responseSetKey"></pre>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <!-- Example for GET /<id> -->
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="headingGetAll">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGetAll" aria-expanded="false" aria-controls="collapseGetAll">
-                    GET /&lt;id&gt;
-                  </button>
-                </h2>
-                <div id="collapseGetAll" class="accordion-collapse collapse" aria-labelledby="headingGetAll" data-bs-parent="#apiAccordion">
-                  <div class="accordion-body">
-                    <form onsubmit="submitGetAll(event)">
-                      <div class="mb-2">
-                        <label for="id" class="form-label">ID</label>
-                        <input type="text" class="form-control" id="id" name="id" value="123abc" required>
-                      </div>
-                      <div class="mb-2">
-                        <label for="token" class="form-label">Token</label>
-                        <input type="text" class="form-control" id="token" name="token" placeholder="required">
-                      </div>
-                      <button type="submit" class="btn btn-primary">Try it</button>
-                    </form>
-                    <pre id="responseGetAll" class="mt-3"></pre>
-                  </div>
+                <!-- Example for GET /<id> -->
+                <div>
+                    <h2 id="headingGetAll">
+                        <button type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#collapseGetAll"
+                                aria-expanded="false"
+                                aria-controls="collapseGetAll">GET /&lt;id&gt;</button>
+                    </h2>
+                    <div id="collapseGetAll"
+                         aria-labelledby="headingGetAll"
+                         data-bs-parent="#apiAccordion">
+                        <div>
+                            <form onsubmit="submitGetAll(event)">
+                                <div>
+                                    <label for="id">ID</label>
+                                    <input type="text"  id="id" name="id" value="123abc" required>
+                                </div>
+                                <div>
+                                    <label for="token">Token</label>
+                                    <input type="text"  id="token" name="token" placeholder="required">
+                                </div>
+                                <button type="submit">Try it</button>
+                            </form>
+                            <pre id="responseGetAll"></pre>
+                        </div>
+                    </div>
                 </div>
-              </div>
-
             </div>
             <!-- Example for POST /delete/<id> -->
-            <div class="accordion-item">
-              <h2 class="accordion-header" id="headingDeleteId">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDeleteId" aria-expanded="false" aria-controls="collapseDeleteId">
-                  POST /delete/&lt;id&gt;
-                </button>
-              </h2>
-              <div id="collapseDeleteId" class="accordion-collapse collapse" aria-labelledby="headingDeleteId" data-bs-parent="#apiAccordion">
-                <div class="accordion-body">
-                  <form onsubmit="submitDeleteId(event)">
-                    <div class="mb-2">
-                      <label for="id" class="form-label">ID</label>
-                      <input type="text" class="form-control" id="id" name="id" value="123abc" required>
+            <div>
+                <h2 id="headingDeleteId">
+                    <button type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseDeleteId"
+                            aria-expanded="false"
+                            aria-controls="collapseDeleteId">POST /delete/&lt;id&gt;</button>
+                </h2>
+                <div id="collapseDeleteId"
+                     aria-labelledby="headingDeleteId"
+                     data-bs-parent="#apiAccordion">
+                    <div>
+                        <form onsubmit="submitDeleteId(event)">
+                            <div>
+                                <label for="id">ID</label>
+                                <input type="text"  id="id" name="id" value="123abc" required>
+                            </div>
+                            <div>
+                                <label for="token">Token</label>
+                                <input type="text"  id="token" name="token" placeholder="required">
+                            </div>
+                            <button type="submit">Try it</button>
+                        </form>
+                        <pre id="responseDeleteId"></pre>
                     </div>
-                    <div class="mb-2">
-                      <label for="token" class="form-label">Token</label>
-                      <input type="text" class="form-control" id="token" name="token" placeholder="required">
-                    </div>
-                    <button type="submit" class="btn btn-danger">Try it</button>
-                  </form>
-                  <pre id="responseDeleteId" class="mt-3"></pre>
                 </div>
-              </div>
             </div>
             <!-- Example for GET /list/<id> -->
-            <div class="accordion-item">
-              <h2 class="accordion-header" id="headingListKeys">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseListKeys" aria-expanded="false" aria-controls="collapseListKeys">
-                  GET /list/&lt;id&gt;
-                </button>
-              </h2>
-              <div id="collapseListKeys" class="accordion-collapse collapse" aria-labelledby="headingListKeys" data-bs-parent="#apiAccordion">
-                <div class="accordion-body">
-                  <form onsubmit="submitListKeys(event)">
-                    <div class="mb-2">
-                      <label for="id" class="form-label">ID</label>
-                      <input type="text" class="form-control" id="id" name="id" value="123abc" required>
+            <div>
+                <h2 id="headingListKeys">
+                    <button type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseListKeys"
+                            aria-expanded="false"
+                            aria-controls="collapseListKeys">GET /list/&lt;id&gt;</button>
+                </h2>
+                <div id="collapseListKeys"
+                     aria-labelledby="headingListKeys"
+                     data-bs-parent="#apiAccordion">
+                    <div>
+                        <form onsubmit="submitListKeys(event)">
+                            <div>
+                                <label for="id">ID</label>
+                                <input type="text"  id="id" name="id" value="123abc" required>
+                            </div>
+                            <div>
+                                <label for="token">Token</label>
+                                <input type="text"  id="token" name="token" placeholder="required">
+                            </div>
+                            <button type="submit">Try it</button>
+                        </form>
+                        <pre id="responseListKeys"></pre>
                     </div>
-                    <div class="mb-2">
-                      <label for="token" class="form-label">Token</label>
-                      <input type="text" class="form-control" id="token" name="token" placeholder="required">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Try it</button>
-                  </form>
-                  <pre id="responseListKeys" class="mt-3"></pre>
                 </div>
-              </div>
             </div>
             <!-- Example for POST /bulkset/<id> -->
-            <div class="accordion-item">
-              <h2 class="accordion-header" id="headingBulkSet">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBulkSet" aria-expanded="false" aria-controls="collapseBulkSet">
-                  POST /bulkset/&lt;id&gt;
-                </button>
-              </h2>
-              <div id="collapseBulkSet" class="accordion-collapse collapse" aria-labelledby="headingBulkSet" data-bs-parent="#apiAccordion">
-                <div class="accordion-body">
-                  <form onsubmit="submitBulkSet(event)">
-                    <div class="mb-2">
-                      <label for="id" class="form-label">ID</label>
-                      <input type="text" class="form-control" id="id" name="id" value="123abc" required>
+            <div>
+                <h2 id="headingBulkSet">
+                    <button type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseBulkSet"
+                            aria-expanded="false"
+                            aria-controls="collapseBulkSet">POST /bulkset/&lt;id&gt;</button>
+                </h2>
+                <div id="collapseBulkSet"
+                     aria-labelledby="headingBulkSet"
+                     data-bs-parent="#apiAccordion">
+                    <div>
+                        <form onsubmit="submitBulkSet(event)">
+                            <div>
+                                <label for="id">ID</label>
+                                <input type="text"  id="id" name="id" value="123abc" required>
+                            </div>
+                            <div>
+                                <label for="token">Token</label>
+                                <input type="text"  id="token" name="token" placeholder="required">
+                            </div>
+                            <div>
+                                <label for="root">Key-Value JSON</label>
+                                <textarea id="root" name="root" rows="3" required>{"a":"b","x":"y"}</textarea>
+                            </div>
+                            <button type="submit">Try it</button>
+                        </form>
+                        <pre id="responseBulkSet"></pre>
                     </div>
-                    <div class="mb-2">
-                      <label for="token" class="form-label">Token</label>
-                      <input type="text" class="form-control" id="token" name="token" placeholder="required">
-                    </div>
-                    <div class="mb-2">
-                      <label for="root" class="form-label">Key-Value JSON</label>
-                      <textarea class="form-control" id="root" name="root" rows="3" required>{"a":"b","x":"y"}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Try it</button>
-                  </form>
-                  <pre id="responseBulkSet" class="mt-3"></pre>
                 </div>
-              </div>
             </div>
             <script>
                 async function submitCreate(event) {
@@ -224,103 +249,119 @@
                     const id = form.id.value;
                     const token = form.token.value;
                     const url = new URL('/create', window.location.origin);
-                    const body = JSON.stringify({ id, token });
+                    const body = JSON.stringify({
+                        id,
+                        token
+                    });
                     const res = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: body
                     });
                     const out = await res.json();
                     document.getElementById("responseCreate").textContent = JSON.stringify(out, null, 2);
                 }
-              async function submitGetKey(event) {
-                event.preventDefault();
-                const form = event.target;
-                const id = form.id.value;
-                const key = form.key.value;
-                const token = form.token.value;
-                const password = form.password.value;
-                const url = new URL(`/get/${id}/${key}`, window.location.origin);
-                if (token) url.searchParams.append('token', token);
-                if (password) url.searchParams.append('password', password);
-                const res = await fetch(url);
-                const out = await res.json();
-                document.getElementById("responseGetKey").textContent = JSON.stringify(out, null, 2);
-              }
-              async function submitSetKey(event) {
-                event.preventDefault();
-                const form = event.target;
-                const id = form.id.value;
-                const key = form.key.value;
-                const value = form.value.value;
-                const token = form.token.value;
-                const password = form.password.value;
-                const url = new URL(`/set/${id}/${key}`, window.location.origin);
-                const body = JSON.stringify({ value, token, password });
-                const res = await fetch(url, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: body
-                });
-                const out = await res.json();
-                document.getElementById("responseSetKey").textContent = JSON.stringify(out, null, 2);
-              }
-              async function submitGetAll(event) {
-                event.preventDefault();
-                const form = event.target;
-                const id = form.id.value;
-                const token = form.token.value;
-                const url = new URL(`/${id}`, window.location.origin);
-                if (token) url.searchParams.append("token", token);
-                const res = await fetch(url);
-                const out = await res.json();
-                document.getElementById("responseGetAll").textContent = JSON.stringify(out, null, 2);
-              }
-                    async function submitDeleteId(event) {
-                  event.preventDefault();
-                  const form = event.target;
-                  const id = form.id.value;
-                  const token = form.token.value;
-                  const url = new URL(`/delete/${id}`, window.location.origin);
-                  if (token) url.searchParams.append("token", token);
-                  const res = await fetch(url, { method: "POST" });
-                  const out = await res.json();
-                  document.getElementById("responseDeleteId").textContent = JSON.stringify(out, null, 2);
-              }
+                async function submitGetKey(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const key = form.key.value;
+                    const token = form.token.value;
+                    const password = form.password.value;
+                    const url = new URL(`/get/${id}/${key}`, window.location.origin);
+                    if (token) url.searchParams.append('token', token);
+                    if (password) url.searchParams.append('password', password);
+                    const res = await fetch(url);
+                    const out = await res.json();
+                    document.getElementById("responseGetKey").textContent = JSON.stringify(out, null, 2);
+                }
+                async function submitSetKey(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const key = form.key.value;
+                    const value = form.value.value;
+                    const token = form.token.value;
+                    const password = form.password.value;
+                    const url = new URL(`/set/${id}/${key}`, window.location.origin);
+                    const body = JSON.stringify({
+                        value,
+                        token,
+                        password
+                    });
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: body
+                    });
+                    const out = await res.json();
+                    document.getElementById("responseSetKey").textContent = JSON.stringify(out, null, 2);
+                }
+                async function submitGetAll(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const token = form.token.value;
+                    const url = new URL(`/${id}`, window.location.origin);
+                    if (token) url.searchParams.append("token", token);
+                    const res = await fetch(url);
+                    const out = await res.json();
+                    document.getElementById("responseGetAll").textContent = JSON.stringify(out, null, 2);
+                }
+                async function submitDeleteId(event) {
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const token = form.token.value;
+                    const url = new URL(`/delete/${id}`, window.location.origin);
+                    if (token) url.searchParams.append("token", token);
+                    const res = await fetch(url, {
+                        method: "POST"
+                    });
+                    const out = await res.json();
+                    document.getElementById("responseDeleteId").textContent = JSON.stringify(out, null, 2);
+                }
 
                 async function submitListKeys(event) {
-                  event.preventDefault();
-                  const form = event.target;
-                  const id = form.id.value;
-                  const token = form.token.value;
-                  const url = new URL(`/list/${id}`, window.location.origin);
-                  if (token) url.searchParams.append("token", token);
-                  const res = await fetch(url);
-                  const out = await res.json();
-                  document.getElementById("responseListKeys").textContent = JSON.stringify(out, null, 2);
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const token = form.token.value;
+                    const url = new URL(`/list/${id}`, window.location.origin);
+                    if (token) url.searchParams.append("token", token);
+                    const res = await fetch(url);
+                    const out = await res.json();
+                    document.getElementById("responseListKeys").textContent = JSON.stringify(out, null, 2);
                 }
 
                 async function submitBulkSet(event) {
-                  event.preventDefault();
-                  const form = event.target;
-                  const id = form.id.value;
-                  const token = form.token.value;
-                  const root = JSON.parse(form.root.value);
-                  const url = new URL(`/bulkset/${id}`, window.location.origin);
-                  if (token) url.searchParams.append("token", token);
-                  const body = JSON.stringify({ root });
-                  const res = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body,
-                  });
-                  const out = await res.json();
-                  document.getElementById("responseBulkSet").textContent = JSON.stringify(out, null, 2);
+                    event.preventDefault();
+                    const form = event.target;
+                    const id = form.id.value;
+                    const token = form.token.value;
+                    const root = JSON.parse(form.root.value);
+                    const url = new URL(`/bulkset/${id}`, window.location.origin);
+                    if (token) url.searchParams.append("token", token);
+                    const body = JSON.stringify({
+                        root
+                    });
+                    const res = await fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body,
+                    });
+                    const out = await res.json();
+                    document.getElementById("responseBulkSet").textContent = JSON.stringify(out, null, 2);
                 }
             </script>
-            </table>
-        </div>
+        </table>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</div>
 </body>
 </html>

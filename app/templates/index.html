@@ -1,35 +1,29 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KVDB</title>
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    />
-</head>
-<body class="bg-light">
-    <div class="container py-5">
-        <h1 class="text-center mb-4">KVDB - Key Value Database</h1>
-        <div class="card shadow">
-            <div class="card-body">
-                <h2 class="h5">Welcome</h2>
-                <p class="mb-3">
-                    This is a minimal HTTP key-value store. You can use the
-                    <code>/create</code> endpoint to create a new data store with optional expiration and password.
-                    Once you have an <code>id</code> and <code>token</code>, you can use the other endpoints like
-                    <code>/set/&lt;id&gt;</code>, <code>/get/&lt;id&gt;/&lt;key&gt;</code>, and so on.
-                </p>
-                <p>
-                    Visit the <a href="/endpoints" class="link-primary">Mini Swagger UI</a> for additional tools.
-                </p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>KVDB</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <div>
+            <h1>KVDB - Key Value Database</h1>
+            <div>
+                <div>
+                    <h2>Welcome</h2>
+                    <p>
+                        This is a minimal HTTP key-value store. You can use the
+                        <code>/create</code> endpoint to create a new data store with optional expiration and password.
+                        Once you have an <code>id</code> and <code>token</code>, you can use the other endpoints like
+                        <code>/set/&lt;id&gt;</code>, <code>/get/&lt;id&gt;/&lt;key&gt;</code>, and so on.
+                    </p>
+                    <p>
+                        Visit the <a href="/endpoints">Mini Swagger UI</a> for additional tools.
+                        Or visit the <a href="/dash">Dashboard</a> for a gui to create a new db
+                    </p>
+                </div>
             </div>
         </div>
-    </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
-
-</body>
+    </body>
 </html>

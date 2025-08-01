@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Manage DB</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <h1>Manage Existing Key-Value Store</h1>
+        <form id="fetch-form">
+            <label>
+                ID:
+                <input type="text" name="id" />
+            </label>
+            <br />
+            <label>
+                Token:
+                <input type="text" name="token" />
+            </label>
+            <br />
+            <button type="submit">Fetch Keys</button>
+        </form>
+        <div id="keys"></div>
+        <script>
+            document.getElementById("fetch-form").onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const id = formData.get("id");
+                const token = formData.get("token");
+
+                const res = await fetch(`/list/${id}?token=${encodeURIComponent(token)}`);
+                const json = await res.json();
+
+                if (json.keys) {
+                    const keysHtml = json.keys.map(key => `<li>${key}</li>`).join("");
+                    document.getElementById("keys").innerHTML = `<ul>${keysHtml}</ul>`;
+                } else {
+                    document.getElementById("keys").textContent = JSON.stringify(json, null, 2);
+                }
+            };
+        </script>
+    </body>
+</html>
