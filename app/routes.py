@@ -20,15 +20,27 @@ from app.helpers import (
 )
 from app.models import BulkSetRequest, CreateRequest, Record, SetValueRequest
 
-
 bp = Blueprint("main", __name__)
 
 RATE_LIMIT: Dict[str, List[str]] = {}  # naive in-memory rate limiter
 
 
 @bp.route("/")
+@bp.route("/", methods=["GET"])
+@bp.route("/index")
+@bp.route("/index.html")
 def index():
     return render_template("index.html")
+
+
+@bp.route("/health")
+def health_check():
+    return jsonify({"status": "ok"}), 200
+
+
+@bp.route("/endpoints")
+def api_endpoints():
+    return render_template("endpoints.html")
 
 
 @bp.route("/create", methods=["POST"])
@@ -146,7 +158,9 @@ def set_value(id: str, body: SetValueRequest):
         return {"error": "Missing key"}, 400
 
     hashed_pw = (
-        hmac.new(current_app.config["SECRET_KEY"], key_password.encode(), "sha256").hexdigest()
+        hmac.new(
+            current_app.config["SECRET_KEY"], key_password.encode(), "sha256"
+        ).hexdigest()
         if key_password
         else None
     )
@@ -164,13 +178,43 @@ def set_value(id: str, body: SetValueRequest):
     return {"message": "Value set successfully"}, 200
 
 
-@bp.route("/get/<id>/<key>")
-def get_key(id, key):
+@bp.route("/<id>/<key>", methods=["PUT"])
+@validate()
+def update_value(id: str, key: str, body: SetValueRequest):
     if rate_limited(request.remote_addr, RATE_LIMIT, id):
         return {"error": "Too many requests"}, 429
     if not is_valid_id(id):
         return {"error": "Invalid ID format"}, 400
 
+    token = request.args.get("token", "")
+    if not verify_scoped_token(token, "write"):
+        return {"error": "Write permission denied"}, 403
+
+    try:
+        data = load_data(id)
+    except FileNotFoundError:
+        return {"error": "ID not found"}, 404
+
+    if key not in data["data"]:
+        return {"error": "Key not found"}, 404
+
+    # Only update the value field for existing keys
+    data["data"][key]["value"] = body.value
+    log_action(data=data, action="update", key=key, ip=request.remote_addr, token=token)
+    record = Record(**data)
+    save_data(id, record)
+    return {"message": "Value updated successfully"}, 200
+
+
+@bp.route("/get/<id>/<key>", methods=["GET"])
+@bp.route("/<id>/<key>", methods=["GET", "DELETE"])
+def get_key(id, key):
+    if rate_limited(request.remote_addr, RATE_LIMIT, id):
+        return {"error": "Too many requests"}, 429
+    if not is_valid_id(id):
+        return {"error": "Invalid ID format"}, 400
+    if request.method == "DELETE":
+        return delete_key(id, key)
     token = request.args.get("token")
     password = request.args.get("password")
 
@@ -208,7 +252,7 @@ def get_key(id, key):
         return {"error": "ID not found"}, 404
 
 
-@bp.route("/delete/<id>", methods=["POST"])
+@bp.route("/delete/<id>", methods=["POST", "DELETE"])
 def delete_id(id):
     if rate_limited(request.remote_addr, RATE_LIMIT, id):
         return {"error": "Too many requests"}, 429
@@ -225,7 +269,7 @@ def delete_id(id):
         return {"error": "ID not found"}, 404
 
 
-@bp.route("/delete/<id>/<key>", methods=["POST"])
+@bp.route("/delete/<id>/<key>", methods=["POST", "DELETE"])
 def delete_key(id, key):
     if rate_limited(request.remote_addr, RATE_LIMIT, id):
         return {"error": "Too many requests"}, 429
@@ -349,3 +393,312 @@ def admin_panel():
 
 
 # Suppress `flask_pydantic` missing stubs error
+
+
+@bp.route("/swagger.json")
+def swagger_spec():
+    spec = {
+        "openapi": "3.0.0",
+        "info": {"title": "KVDB API", "version": "1.0.0"},
+        "components": {
+            "schemas": {
+                "CreateRequest": {
+                    "type": "object",
+                    "properties": {
+                        "password": {
+                            "type": "string",
+                            "nullable": True,
+                            "default": None,
+                        },
+                        "expires": {
+                            "type": "number",
+                            "default": 31536000,
+                            "description": "Expiration time in seconds",
+                        },
+                        "scopes": {"type": "string", "default": ""},
+                    },
+                },
+                "SetValueRequest": {
+                    "type": "object",
+                    "required": ["key", "value"],
+                    "properties": {
+                        "key": {"type": "string"},
+                        "value": {"type": "string"},
+                        "password": {
+                            "type": "string",
+                            "nullable": True,
+                            "default": None,
+                        },
+                        "one_time": {"type": "boolean", "default": False},
+                        "expires_at": {
+                            "oneOf": [
+                                {"type": "string", "format": "date-time"},
+                                {"type": "string"},
+                                {"type": "null"},
+                            ],
+                            "default": None,
+                        },
+                    },
+                },
+                "BulkSetRequest": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "Dictionary of key-value pairs to set",
+                },
+            }
+        },
+        "paths": {
+            "/": {
+                "get": {
+                    "summary": "Index",
+                    "responses": {
+                        "200": {"description": "OK"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/health": {
+                "get": {
+                    "summary": "Health Check",
+                    "responses": {
+                        "200": {"description": "OK"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/endpoints": {
+                "get": {
+                    "summary": "List API Endpoints",
+                    "responses": {
+                        "200": {"description": "Endpoints list"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/create": {
+                "post": {
+                    "summary": "Create new record",
+                    "requestBody": {
+                        "required": False,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/CreateRequest"}
+                            }
+                        },
+                    },
+                    "responses": {
+                        "201": {"description": "Record created"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/{id}": {
+                "get": {
+                    "summary": "Get record by ID",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {
+                        "200": {"description": "Record data"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/set/{id}": {
+                "post": {
+                    "summary": "Set value for record",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SetValueRequest"
+                                }
+                            }
+                        },
+                    },
+                    "responses": {
+                        "200": {"description": "Value set"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/get/{id}/{key}": {
+                "get": {
+                    "summary": "Get key value",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                        {
+                            "name": "key",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                    ],
+                    "responses": {
+                        "200": {"description": "Key value retrieved"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/delete/{id}": {
+                "post": {
+                    "summary": "Delete record",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {
+                        "200": {"description": "Record deleted"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/delete/{id}/{key}": {
+                "post": {
+                    "summary": "Delete key",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                        {
+                            "name": "key",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                    ],
+                    "responses": {
+                        "200": {"description": "Key deleted"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/list/{id}": {
+                "get": {
+                    "summary": "List keys",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {
+                        "200": {"description": "List of keys"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/bulkset/{id}": {
+                "post": {
+                    "summary": "Bulk set values",
+                    "parameters": [
+                        {
+                            "name": "id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BulkSetRequest"
+                                }
+                            }
+                        },
+                    },
+                    "responses": {
+                        "200": {"description": "Bulk set successful"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/admin/list-all": {
+                "get": {
+                    "summary": "List all IDs",
+                    "responses": {
+                        "200": {"description": "All IDs listed"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/admin/nuke": {
+                "post": {
+                    "summary": "Nuke all data",
+                    "responses": {
+                        "200": {"description": "All data deleted"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/clear_expired": {
+                "post": {
+                    "summary": "Clear expired data",
+                    "responses": {
+                        "200": {"description": "Expired data cleared"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+            "/admin": {
+                "get": {
+                    "summary": "Admin panel",
+                    "responses": {
+                        "200": {"description": "Admin interface"},
+                        "429": {"description": "Too many requests"},
+                        "403": {"description": "Forbidden"},
+                    },
+                }
+            },
+        },
+    }
+    return jsonify(spec)
+
+
+@bp.route("/swagger")
+def swagger_ui():
+    return render_template("swagger_ui.html")
