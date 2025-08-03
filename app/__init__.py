@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 DATA_DIR = "data"
 
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or os.urandom(32).decode()
 app.config["ADMIN_KEY"] = os.environ.get("ADMIN_KEY", "default_admin")
 app.config["DATA_DIR"] = os.environ.get("DATA_DIR", DATA_DIR)
 

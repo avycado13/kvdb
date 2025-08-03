@@ -49,7 +49,7 @@ def is_valid_id(id):
 def sign_id(id: str, scope: str | list[str] = "") -> str:
     scope_str = canonical_scope(scope)
     msg = f"{id}:{scope_str}".encode()
-    return hmac.new(current_app.config["SECRET_KEY"], msg, "sha256").hexdigest()
+    return hmac.new(current_app.config["SECRET_KEY"].encode(), msg, "sha256").hexdigest()
 
 
 def create_scoped_token(
@@ -64,7 +64,7 @@ def create_scoped_token(
     }
     payload_json = json.dumps(payload, separators=(",", ":")).encode()
     payload_b64 = base64.urlsafe_b64encode(payload_json).rstrip(b"=")
-    sig = hmac.new(current_app.config["SECRET_KEY"], payload_b64, "sha256").hexdigest()
+    sig = hmac.new(current_app.config["SECRET_KEY"].encode(), payload_b64, "sha256").hexdigest()
     return f"{payload_b64.decode()}.{sig}"
 
 
@@ -91,7 +91,7 @@ def verify_scoped_token(token: str, required_scope: str) -> dict | None:
         payload_b64, sig = token.split(".")
         payload_json = base64.urlsafe_b64decode(payload_b64 + "==").decode()
         expected_sig = hmac.new(
-            current_app.config["SECRET_KEY"], payload_b64.encode(), "sha256"
+            current_app.config["SECRET_KEY"].encode(), payload_b64.encode(), "sha256"
         ).hexdigest()
 
         if not hmac.compare_digest(expected_sig, sig):
@@ -170,7 +170,7 @@ def log_action(data: Record | dict[Any,Any], token: str, action: str, key: Optio
         "token": token,
     }
 
-    entry_data["hash"] = compute_log_hash(entry_data, current_app.config["SECRET_KEY"])
+    entry_data["hash"] = compute_log_hash(entry_data, current_app.config["SECRET_KEY"].encode())
     entry = AuditEntry(**entry_data)
 
     data.audit_log.append(entry)
