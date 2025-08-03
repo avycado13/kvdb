@@ -1,19 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Dashboard</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <h1>User Dashboard</h1>
-        <ul>
-            <li>
-                <a href="/dashboard/create">➕ Create New DB</a>
-            </li>
-            <li>
-                <a href="/dashboard/manage">🗂️ Manage Existing DB</a>
-            </li>
-        </ul>
-    </body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}KVDB - Dashboard{% endblock %}
+
+{% block content %}
+<h1>User Dashboard</h1>
+<ul>
+    <li>
+        <a href="/dashboard/create">➕ Create New DB</a>
+    </li>
+    <li>
+        <a href="/dashboard/manage">🗂️ Manage Existing DB</a>
+    </li>
+</ul>
+{% endblock %}

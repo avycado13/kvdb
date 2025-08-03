@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}KVDB{% endblock %}</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+    <body>
+        <nav class="navbar">
+            <div class="nav-container">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="/" class="nav-link">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/dash" class="nav-link">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/swagger" class="nav-link">Swagger</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/endpoints" class="nav-link">Endpoints</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin" class="nav-link">Admin</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </body>
+</html>

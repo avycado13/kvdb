@@ -1,52 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Create DB</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <h1>Create a New Key-Value Store</h1>
-        <form id="create-form">
-            <label>
-                Password (optional):
-                <input type="password" name="password" />
-            </label>
-            <br />
-            <label>
-                Expires in (seconds):
-                <input type="number" name="expires" value="31536000" />
-            </label>
-            <br />
-            <label>
-                Scopes:
-                <input type="text" name="scopes" placeholder="read,write,delete,clear" />
-            </label>
-            <br />
-            <button type="submit">Create</button>
-        </form>
-        <div id="result"></div>
-        <script>
-            document.getElementById("create-form").onsubmit = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = {
-                    password: formData.get("password") || null,
-                    expires: parseInt(formData.get("expires")),
-                    scopes: formData.get("scopes")
-                };
+{% extends "base.html" %}
 
-                const res = await fetch("/create", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(data)
-                });
+{% block title %}KVDB - Create Database{% endblock %}
 
-                const json = await res.json();
-                document.getElementById("result").textContent = JSON.stringify(json, null, 2);
-            };
-        </script>
-    </body>
-</html>
+{% block content %}
+<h1>Create a New Key-Value Store</h1>
+<form id="create-form">
+    <label>
+        Password (optional):
+        <input type="password" name="password" />
+    </label>
+    <br />
+    <label>
+        Expires in (seconds):
+        <input type="number" name="expires" value="31536000" />
+    </label>
+    <br />
+    <label>
+        Scopes:
+        <input type="text" name="scopes" placeholder="read,write,delete,clear" />
+    </label>
+    <br />
+    <label>
+        <input type="checkbox" name="save_to_local_storage" />
+        Save to local storage
+    </label>
+    <br />
+    <button type="submit">Create</button>
+</form>
+<div id="result"></div>
+<script>
+    document.getElementById("create-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            password: formData.get("password") || null,
+            expires: parseInt(formData.get("expires")),
+            scopes: formData.get("scopes")
+        };
+
+        const res = await fetch("/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+        document.getElementById("result").textContent = JSON.stringify(json, null, 2);
+
+        // Save to local storage if checkbox is checked
+        const saveToLocalStorage = formData.get("save_to_local_storage");
+        if (saveToLocalStorage && json.id && json.token) {
+            // Get existing saved databases or initialize empty array
+            const savedDbs = JSON.parse(localStorage.getItem("kvdb_databases") || "[]");
+            
+            // Add new database to the list
+            savedDbs.push({
+                id: json.id,
+                token: json.token
+            });
+            
+            // Save back to local storage
+            localStorage.setItem("kvdb_databases", JSON.stringify(savedDbs));
+        }
+    };
+</script>
+{% endblock %}

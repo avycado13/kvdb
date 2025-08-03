@@ -1,43 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Manage DB</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <h1>Manage Existing Key-Value Store</h1>
-        <form id="fetch-form">
-            <label>
-                ID:
-                <input type="text" name="id" />
-            </label>
-            <br />
-            <label>
-                Token:
-                <input type="text" name="token" />
-            </label>
-            <br />
-            <button type="submit">Fetch Keys</button>
-        </form>
-        <div id="keys"></div>
-        <script>
-            document.getElementById("fetch-form").onsubmit = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const id = formData.get("id");
-                const token = formData.get("token");
+{% extends "base.html" %}
 
-                const res = await fetch(`/list/${id}?token=${encodeURIComponent(token)}`);
-                const json = await res.json();
+{% block title %}KVDB - Manage Database{% endblock %}
 
-                if (json.keys) {
-                    const keysHtml = json.keys.map(key => `<li>${key}</li>`).join("");
-                    document.getElementById("keys").innerHTML = `<ul>${keysHtml}</ul>`;
-                } else {
-                    document.getElementById("keys").textContent = JSON.stringify(json, null, 2);
-                }
-            };
-        </script>
-    </body>
-</html>
+{% block content %}
+<h1>Manage Existing Key-Value Store</h1>
+<div id="saved-db-selector" style="margin-bottom: 20px;">
+    <label>
+        Saved Databases:
+        <select id="saved-db-dropdown">
+            <option value="">-- Select a saved database --</option>
+        </select>
+    </label>
+</div>
+<form id="fetch-form">
+    <label>
+        ID:
+        <input type="text" name="id" id="db-id" />
+    </label>
+    <br />
+    <label>
+        Token:
+        <input type="text" name="token" id="db-token" />
+    </label>
+    <br />
+    <button type="submit">Fetch Keys</button>
+</form>
+<div id="keys"></div>
+<script>
+    // Populate dropdown with saved databases on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedDbs = JSON.parse(localStorage.getItem("kvdb_databases") || "[]");
+        const dropdown = document.getElementById("saved-db-dropdown");
+        
+        savedDbs.forEach((db, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.textContent = db.id;
+            dropdown.appendChild(option);
+        });
+
+        // Handle dropdown selection
+        dropdown.addEventListener("change", function() {
+            const selectedIndex = this.value;
+            if (selectedIndex !== "" && savedDbs[selectedIndex]) {
+                document.getElementById("db-id").value = savedDbs[selectedIndex].id;
+                document.getElementById("db-token").value = savedDbs[selectedIndex].token;
+            } else {
+                document.getElementById("db-id").value = "";
+                document.getElementById("db-token").value = "";
+            }
+        });
+    });
+
+    document.getElementById("fetch-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const id = formData.get("id");
+        const token = formData.get("token");
+
+        const res = await fetch(`/list/${id}?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+
+        if (json.keys) {
+            const keysHtml = json.keys.map(key => `<li>${key}</li>`).join("");
+            document.getElementById("keys").innerHTML = `<ul>${keysHtml}</ul>`;
+        } else {
+            document.getElementById("keys").textContent = JSON.stringify(json, null, 2);
+        }
+    };
+</script>
+{% endblock %}
