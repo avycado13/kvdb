@@ -1,80 +1,77 @@
 {% extends "base.html" %}
-
 {% block title %}KVDB - Admin Panel{% endblock %}
-
 {% block content %}
-<div>
-    <h1>KVDB Admin Panel</h1>
     <div>
-        <label for="admin_key">Admin Key</label>
-        <input type="text"  id="admin_key" placeholder="Enter admin key" />
-        <button onclick="saveAdminKey()">Save Key</button>
-        <button onclick="clearSavedKey()">Clear Saved Key</button>
+        <h1>KVDB Admin Panel</h1>
+        <div>
+            <label for="admin_key">Admin Key</label>
+            <input type="text"  id="admin_key" placeholder="Enter admin key" />
+            <button onclick="saveAdminKey()">Save Key</button>
+            <button onclick="clearSavedKey()">Clear Saved Key</button>
+        </div>
+        <div>
+            <h2>List All IDs</h2>
+            <button onclick="fetchAllIDs()">Fetch IDs</button>
+            <pre id="list_response"></pre>
+        </div>
+        <div>
+            <h2>Clear All Data (Nuke)</h2>
+            <button onclick="nukeAll()">Nuke All</button>
+            <pre id="nuke_response"></pre>
+        </div>
+        <div>
+            <h2>Clear Expired Records</h2>
+            <button onclick="clearExpired()">Clear Expired</button>
+            <pre id="clear_response"></pre>
+        </div>
     </div>
-    <div>
-        <h2>List All IDs</h2>
-        <button onclick="fetchAllIDs()">Fetch IDs</button>
-        <pre id="list_response"></pre>
-    </div>
-    <div>
-        <h2>Clear All Data (Nuke)</h2>
-        <button onclick="nukeAll()">Nuke All</button>
-        <pre id="nuke_response"></pre>
-    </div>
-    <div>
-        <h2>Clear Expired Records</h2>
-        <button onclick="clearExpired()">Clear Expired</button>
-        <pre id="clear_response"></pre>
-    </div>
-</div>
-
-<script>
-    // Load saved admin key on page load
-    window.addEventListener('DOMContentLoaded', (event) => {
-        const savedKey = localStorage.getItem('kvdb_admin_key');
-        if (savedKey) {
-            document.getElementById("admin_key").value = savedKey;
-        }
-    });
-
-    function saveAdminKey() {
-        const key = document.getElementById("admin_key").value;
-        if (key) {
-            localStorage.setItem('kvdb_admin_key', key);
-            alert('Admin key saved successfully!');
-        } else {
-            alert('Please enter an admin key first.');
-        }
-    }
-
-    function clearSavedKey() {
-        localStorage.removeItem('kvdb_admin_key');
-        document.getElementById("admin_key").value = '';
-        alert('Saved admin key cleared.');
-    }
-
-    async function fetchAllIDs() {
-        const key = document.getElementById("admin_key").value;
-        const res = await fetch(`/admin/list-all?admin_key=${key}`);
-        const data = await res.json();
-        document.getElementById("list_response").innerText = JSON.stringify(data, null, 2);
-    }
-
-    async function nukeAll() {
-        const key = document.getElementById("admin_key").value;
-        const res = await fetch(`/admin/nuke?admin_key=${key}`, {
-            method: "POST"
+    <script>
+        // Load saved admin key on page load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const savedKey = localStorage.getItem('kvdb_admin_key');
+            if (savedKey) {
+                document.getElementById("admin_key").value = savedKey;
+            }
         });
-        const data = await res.json();
-        document.getElementById("nuke_response").innerText = JSON.stringify(data, null, 2);
-    }
 
-    async function clearExpired() {
-        const res = await fetch(`/clear_expired`, {
-            method: "POST"
-        });
-        const data = await res.json();
-        document.getElementById("clear_response").innerText = JSON.stringify(data, null, 2);
-    }
-</script>
+        function saveAdminKey() {
+            const key = document.getElementById("admin_key").value;
+            if (key) {
+                localStorage.setItem('kvdb_admin_key', key);
+                alert('Admin key saved successfully!');
+            } else {
+                alert('Please enter an admin key first.');
+            }
+        }
+
+        function clearSavedKey() {
+            localStorage.removeItem('kvdb_admin_key');
+            document.getElementById("admin_key").value = '';
+            alert('Saved admin key cleared.');
+        }
+
+        async function fetchAllIDs() {
+            const key = document.getElementById("admin_key").value;
+            const res = await fetch(`/admin/list-all?admin_key=${key}`);
+            const data = await res.json();
+            document.getElementById("list_response").innerText = JSON.stringify(data, null, 2);
+        }
+
+        async function nukeAll() {
+            const key = document.getElementById("admin_key").value;
+            const res = await fetch(`/admin/nuke?admin_key=${key}`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            document.getElementById("nuke_response").innerText = JSON.stringify(data, null, 2);
+        }
+
+        async function clearExpired() {
+            const res = await fetch(`/clear_expired`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            document.getElementById("clear_response").innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
 {% endblock %}

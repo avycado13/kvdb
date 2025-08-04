@@ -120,3 +120,39 @@ button:hover {
   border-radius: 4px;
   border: 1px solid #ccd;
 }
+
+#edit-modal {
+  max-width: 500px;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#keys-table th, #keys-table td {
+  padding: 0.75rem;
+  text-align: left;
+}
+
+#keys-table th {
+  background-color: #f0f0f0;
+}
+
+#keys-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+form label input[type="text"],
+form label textarea {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+#delete-store-btn {
+  margin-top: 2rem;
+  padding: 0.75rem 1.5rem;
+}

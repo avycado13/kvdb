@@ -117,14 +117,45 @@ def load_data(id: str) -> dict:
 
 def save_data(id: str, data: Record):
     data_dict = data.model_dump() if hasattr(data, "model_dump") else data
+
     if not isinstance(data_dict, dict):
         raise ValueError("Data must be a dictionary or a Pydantic model instance")
-    data_dict["expires_at"] = (
-        data_dict["expires_at"].isoformat() if data_dict.get("expires_at") else None
-    )
-    with open(filepath(id), "w") as f:
-        json.dump(data_dict, f, indent=2)
 
+    # Convert top-level datetime fields
+    if isinstance(data_dict.get("timestamp"), datetime):
+        data_dict["timestamp"] = data_dict["timestamp"].isoformat()
+    if isinstance(data_dict.get("expires_at"), datetime):
+        data_dict["expires_at"] = data_dict["expires_at"].isoformat()
+
+    # Flatten audit_log entries
+    audit_log = data_dict.get("audit_log")
+    if isinstance(audit_log, list):
+        data_dict["audit_log"] = [
+            entry.model_dump() if hasattr(entry, "model_dump") else entry
+            for entry in audit_log
+        ]
+
+    # Flatten nested records inside "data" if needed
+    if isinstance(data_dict.get("data"), dict):
+        for k, v in data_dict["data"].items():
+            if hasattr(v, "model_dump"):
+                data_dict["data"][k] = v.model_dump()
+
+    with open(filepath(id), "w") as f:
+        json.dump(serialize(data_dict), f, indent=2)
+
+
+
+def serialize(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if hasattr(obj, "model_dump"):
+        return serialize(obj.model_dump())
+    if isinstance(obj, dict):
+        return {k: serialize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [serialize(v) for v in obj]
+    return obj
 
 def rate_limited(ip: Optional[str], rate_limit: dict, id: Optional[str] = None) -> bool:
     """Rate limit by IP and optionally by ID."""
@@ -154,15 +185,37 @@ def compute_log_hash(entry, secret_key):
     return hmac.new(secret_key, msg, "sha256").hexdigest()
 
 
+def verify_password(id: str, password: str) -> bool:
+    """Verify password for a given record ID."""
+    try:
+        data = load_data(id)
+        if not data.get("password"):
+            return True  # No password set, so access is allowed
+        
+        if not password:
+            return False  # Password required but not provided
+            
+        hashed_input = hmac.new(
+            current_app.config["SECRET_KEY"].encode(), password.encode(), "sha256"
+        ).hexdigest()
+        return hmac.compare_digest(hashed_input, data["password"])
+    except FileNotFoundError:
+        return False
+    except Exception:
+        return False
+
+
 def log_action(data: Record | dict[Any,Any], token: str, action: str, key: Optional[str] = None, ip: Optional[str] = None):
     if hasattr(data,"audit_log"):
         audit_log = data.audit_log or []
     else:
-        audit_log = data.get("audit_log",[])
+        data["audit_log"] = []
+        audit_log = data.get("audit_log")
+
 
     prev_hash = audit_log[-1].hash if audit_log else None
     entry_data = {
-        "timestamp": datetime.now(timezone.utc),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "action": action,
         "key": key,
         "ip": ip,
@@ -172,5 +225,9 @@ def log_action(data: Record | dict[Any,Any], token: str, action: str, key: Optio
 
     entry_data["hash"] = compute_log_hash(entry_data, current_app.config["SECRET_KEY"].encode())
     entry = AuditEntry(**entry_data)
+    entry_dict = entry.model_dump()
 
-    data.audit_log.append(entry)
+    if isinstance(data, dict):
+        data["audit_log"].append(entry_dict)
+    else:
+        data.audit_log.append(entry_dict)

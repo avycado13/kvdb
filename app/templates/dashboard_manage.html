@@ -1,72 +1,263 @@
 {% extends "base.html" %}
-
 {% block title %}KVDB - Manage Database{% endblock %}
-
 {% block content %}
-<h1>Manage Existing Key-Value Store</h1>
-<div id="saved-db-selector" style="margin-bottom: 20px;">
-    <label>
-        Saved Databases:
-        <select id="saved-db-dropdown">
-            <option value="">-- Select a saved database --</option>
-        </select>
-    </label>
-</div>
-<form id="fetch-form">
-    <label>
-        ID:
-        <input type="text" name="id" id="db-id" />
-    </label>
-    <br />
-    <label>
-        Token:
-        <input type="text" name="token" id="db-token" />
-    </label>
-    <br />
-    <button type="submit">Fetch Keys</button>
-</form>
-<div id="keys"></div>
-<script>
-    // Populate dropdown with saved databases on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    <h1>Manage Existing Key-Value Store</h1>
+    <div id="saved-db-selector" style="margin-bottom: 20px;">
+        <label>
+            Saved Databases:
+            <select id="saved-db-dropdown">
+                <option value="">-- Select a saved database --</option>
+            </select>
+        </label>
+    </div>
+    <form id="fetch-form">
+        <label>
+            ID:
+            <input type="text" name="id" id="db-id" />
+        </label>
+        <br />
+        <label>
+            Token:
+            <input type="text" name="token" id="db-token" />
+        </label>
+        <label>
+            Password:
+            <input type="password" name="password" id="db-password" />
+        </label>
+        <br />
+        <button type="submit">Fetch Keys</button>
+    </form>
+    <hr />
+    <h2>Create New Key</h2>
+    <form id="create-key-form">
+        <label>
+            Key:
+            <input type="text" name="key" />
+        </label>
+        <br />
+        <label>
+            Value: <textarea name="value"></textarea>
+        </label>
+        <br />
+        <button type="submit">Create</button>
+    </form>
+    <hr />
+    <h2>Keys</h2>
+    <table id="keys-table" style="width: 100%; display: none;">
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <!-- Modal -->
+    <div id="edit-modal"
+         style="display:none;
+                position:fixed;
+                top:20%;
+                left:30%;
+                background:white;
+                padding:20px;
+                border:1px solid black">
+        <h3>Edit Key</h3>
+        <input type="hidden" id="edit-key-name" />
+        <label>Value:</label>
+        <br />
+        <textarea id="edit-key-value" style="width:100%; height:100px;"></textarea>
+        <br />
+        <button onclick="saveEdit()">Save</button>
+        <button onclick="closeModal()">Cancel</button>
+    </div>
+    <hr />
+    <button id="delete-store-btn" style="background:red; color:white;">Delete Entire Store</button>
+    <script>
         const savedDbs = JSON.parse(localStorage.getItem("kvdb_databases") || "[]");
-        const dropdown = document.getElementById("saved-db-dropdown");
-        
-        savedDbs.forEach((db, index) => {
-            const option = document.createElement("option");
-            option.value = index;
-            option.textContent = db.id;
-            dropdown.appendChild(option);
-        });
 
-        // Handle dropdown selection
-        dropdown.addEventListener("change", function() {
-            const selectedIndex = this.value;
-            if (selectedIndex !== "" && savedDbs[selectedIndex]) {
-                document.getElementById("db-id").value = savedDbs[selectedIndex].id;
-                document.getElementById("db-token").value = savedDbs[selectedIndex].token;
-            } else {
-                document.getElementById("db-id").value = "";
-                document.getElementById("db-token").value = "";
-            }
-        });
-    });
+        function populateDropdown() {
+            const dropdown = document.getElementById("saved-db-dropdown");
+            savedDbs.forEach((db, index) => {
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = db.id;
+                dropdown.appendChild(option);
+            });
 
-    document.getElementById("fetch-form").onsubmit = async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const id = formData.get("id");
-        const token = formData.get("token");
-
-        const res = await fetch(`/list/${id}?token=${encodeURIComponent(token)}`);
-        const json = await res.json();
-
-        if (json.keys) {
-            const keysHtml = json.keys.map(key => `<li>${key}</li>`).join("");
-            document.getElementById("keys").innerHTML = `<ul>${keysHtml}</ul>`;
-        } else {
-            document.getElementById("keys").textContent = JSON.stringify(json, null, 2);
+            dropdown.addEventListener("change", function() {
+                const selected = savedDbs[this.value];
+                if (selected) {
+                    document.getElementById("db-id").value = selected.id;
+                    document.getElementById("db-token").value = selected.token;
+                } else {
+                    document.getElementById("db-id").value = "";
+                    document.getElementById("db-token").value = "";
+                }
+            });
         }
-    };
-</script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDropdown();
+
+            document.getElementById("fetch-form").onsubmit = async (e) => {
+                e.preventDefault();
+                const id = dbId();
+                const token = dbToken();
+                const password = dbPassword()
+                const res = await fetch(`/${id}?token=${encodeURIComponent(token)}?password=${encodeURIComponent(password)}`);
+                const json = await res.json();
+                if (json) {
+                    const tbody = document.querySelector("#keys-table tbody");
+                    tbody.innerHTML = "";
+                    for (const [key, value] of Object.entries(json)) {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${key}</td>
+                        <td>${value !== undefined && value !== null ? value : "no value"}</td>
+            <td>
+                <button onclick="editKey('${key}')">View/Edit</button>
+                <button onclick="deleteKey('${key}')">Delete</button>
+            </td>`;
+                        tbody.appendChild(row);
+                    }
+                    document.getElementById("keys-table").style.display = "table";
+                }
+            };
+
+            document.getElementById("create-key-form").onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const key = formData.get("key");
+                const value = formData.get("value");
+                console.log("Creating key:", key, "with value:", value);
+                const password = dbPassword()
+
+                const postUrl = `/set/${dbId()}/${key}?token=${encodeURIComponent(dbToken())}?password=${encodeURIComponent(password)}`;
+                const postBody = {
+                    key,
+                    value
+                };
+                console.log("POST URL:", postUrl);
+                console.log("POST body:", postBody);
+                fetch(`/set/${dbId()}?token=${encodeURIComponent(dbToken())}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        key,
+                        value
+                    })
+                });
+                if (res.ok) {
+                    alert("Key created!");
+                    document.getElementById("fetch-form").onsubmit(new Event("submit"));
+                } else {
+                    alert("Failed to create key.");
+                }
+                const res = await fetch(`/${id}?token=${encodeURIComponent(token)}`);
+                const json = await res.json();
+                if (json) {
+                    const tbody = document.querySelector("#keys-table tbody");
+                    tbody.innerHTML = "";
+                    for (const [key, value] of Object.entries(json)) {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `<td>${key}</td><td>${value}</td>
+            <td>
+                <button onclick="editKey('${key}')">View/Edit</button>
+                <button onclick="deleteKey('${key}')">Delete</button>
+            </td>`;
+                        tbody.appendChild(row);
+                    }
+                    document.getElementById("keys-table").style.display = "table";
+                }
+            };
+
+            document.getElementById("delete-store-btn").onclick = async () => {
+                const id = dbId();
+                const token = dbToken();
+                const password = dbPassword()
+                const confirmText = prompt(`Type the store ID (${id}) to confirm deletion:`);
+                if (confirmText === id) {
+                    const res = await fetch(`/delete/${id}?token=${encodeURIComponent(token)}?password=${encodeURIComponent(password)}`, {
+                        method: "DELETE"
+                    });
+                    if (res.ok) {
+                        alert("Store deleted.");
+                        location.reload();
+                    } else {
+                        alert("Failed to delete store.");
+                    }
+                }
+                const index = savedDbs.findIndex(
+                    db => db.id === json.id && db.token === json.token
+                );
+                if (index !== -1) {
+                    savedDbs.splice(index, 1);
+                }
+
+                // Save back to local storage
+                localStorage.setItem("kvdb_databases", JSON.stringify(savedDbs));
+            };
+        });
+
+        function dbId() {
+            return document.getElementById("db-id").value;
+        }
+
+        function dbToken() {
+            return document.getElementById("db-token").value;
+        }
+
+        function dbPassword() {
+            return document.getElementById("db-password").value
+        }
+
+        async function editKey(key) {
+            const password = dbPassword()
+            const res = await fetch(`/get/${dbId()}/${key}?token=${encodeURIComponent(dbToken())}?password=${encodeURIComponent(password)}`);
+            const value = await res.text();
+            document.getElementById("edit-key-name").value = key;
+            document.getElementById("edit-key-value").value = value;
+            document.getElementById("edit-modal").style.display = "block";
+        }
+
+        async function saveEdit() {
+            const password = dbPassword()
+
+            const key = document.getElementById("edit-key-name").value;
+            const value = document.getElementById("edit-key-value").value;
+            const res = await fetch(`/set/${dbId()}/${key}?token=${encodeURIComponent(dbToken())}?password=${encodeURIComponent(password)}`, {
+                method: "POST",
+                body: value
+            });
+            if (res.ok) {
+                alert("Key updated!");
+                closeModal();
+                document.getElementById("fetch-form").onsubmit(new Event("submit"));
+            } else {
+                alert("Update failed.");
+            }
+        }
+
+        function closeModal() {
+            document.getElementById("edit-modal").style.display = "none";
+        }
+
+        async function deleteKey(key) {
+            const password = dbPassword()
+
+            if (!confirm(`Are you sure you want to delete key "${key}"?`)) return;
+            const res = await fetch(`/delete/${dbId()}/${key}?token=${encodeURIComponent(dbToken())}?password=${encodeURIComponent(password)}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                alert("Key deleted!");
+                document.getElementById("fetch-form").onsubmit(new Event("submit"));
+            } else {
+                alert("Deletion failed.");
+            }
+        }
+    </script>
 {% endblock %}

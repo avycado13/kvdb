@@ -16,6 +16,7 @@ from app.helpers import (
     rate_limited,
     save_data,
     sign_id,
+    verify_password,
     verify_scoped_token,
 )
 from app.models import BulkSetRequest, CreateRequest, Record, SetValueRequest
@@ -80,13 +81,20 @@ def get(id):
         return {"error": "Invalid ID format"}, 400
 
     token = request.args.get("token")
-    if not verify_scoped_token(token, "read"):
-        return {"error": "Invalid token"}, 403
+    password = request.args.get("password", "")
 
+    # Load data to check if password is required
     try:
         data = load_data(id)
     except FileNotFoundError:
         return {"error": "ID not found"}, 404
+
+    # Verify password if record has one
+    if data.get("password") and not verify_password(id, password):
+        return {"error": "Invalid password"}, 403
+
+    if not verify_scoped_token(token, "read"):
+        return {"error": "Invalid token"}, 403
 
     if data.get("expires_at") and datetime.now(timezone.utc) > datetime.fromisoformat(
         data["expires_at"]
@@ -106,13 +114,11 @@ def get(id):
         del data["data"][key]
         log_action(data, "delete_expired", key, request.remote_addr)
 
-    log_action(data, "read_all", ip=request.remote_addr)
+    log_action(data=data, action="read", ip=request.remote_addr, token=token)
     save_data(id, data)
 
     response_data = {k: v["value"] for k, v in data.get("data", {}).items()}
-    if request.accept_mimetypes.accept_html:
-        return jsonify(response_data)
-    return {"data": response_data}, 200
+    return jsonify(response_data)
 
 
 @bp.route("/set/<id>", methods=["POST"])
@@ -124,13 +130,20 @@ def set_value(id: str, body: SetValueRequest):
         return {"error": "Invalid ID format"}, 400
 
     token = request.args.get("token", "")
-    if not verify_scoped_token(token, "write"):
-        return {"error": "Write permission denied"}, 403
+    password = request.args.get("password", "")
 
+    # Load data to check if password is required
     try:
         data = load_data(id)
     except FileNotFoundError:
         return {"error": "ID not found"}, 404
+
+    # Verify password if record has one
+    if data.get("password") and not verify_password(id, password):
+        return {"error": "Invalid password"}, 403
+
+    if not verify_scoped_token(token, "write"):
+        return {"error": "Write permission denied"}, 403
 
     key = body.key
     value = body.value
@@ -143,16 +156,11 @@ def set_value(id: str, body: SetValueRequest):
         expires_at = datetime.fromisoformat(expires_at)
     elif isinstance(expires_at, datetime):
         pass  # Already a datetime, no action needed
-    else:
-        raise TypeError("expires_at must be a string or datetime")
+    # else:
+    #     raise TypeError("expires_at must be a string or datetime")
 
-    if expires_at:
-        try:
-            pass
-            if expires_at < datetime.now(timezone.utc):
-                return {"error": "Expiration time must be in the future"}, 400
-        except ValueError:
-            return {"error": "Invalid expiration time format"}, 400
+    if expires_at and expires_at < datetime.now(timezone.utc):
+        return {"error": "Expiration time must be in the future"}, 400
 
     if not key:
         return {"error": "Missing key"}, 400
@@ -187,13 +195,20 @@ def update_value(id: str, key: str, body: SetValueRequest):
         return {"error": "Invalid ID format"}, 400
 
     token = request.args.get("token", "")
-    if not verify_scoped_token(token, "write"):
-        return {"error": "Write permission denied"}, 403
+    password = request.args.get("password", "")
 
+    # Load data to check if password is required
     try:
         data = load_data(id)
     except FileNotFoundError:
         return {"error": "ID not found"}, 404
+
+    # Verify password if record has one
+    if data.get("password") and not verify_password(id, password):
+        return {"error": "Invalid password"}, 403
+
+    if not verify_scoped_token(token, "write"):
+        return {"error": "Write permission denied"}, 403
 
     if key not in data["data"]:
         return {"error": "Key not found"}, 404
@@ -216,25 +231,18 @@ def get_key(id, key):
     if request.method == "DELETE":
         return delete_key(id, key)
     token = request.args.get("token")
-    password = request.args.get("password")
-
-    if not verify_scoped_token(token, "read"):
-        return {"error": "Invalid read token"}, 403
+    password = request.args.get("password", "")
 
     try:
         data = load_data(id)
+        # Password verification must occur before any data/key access
+        if data.get("password") and not verify_password(id, password):
+            return {"error": "Invalid password"}, 403
+        if not verify_scoped_token(token, "read"):
+            return {"error": "Invalid read token"}, 403
         entry = data["data"].get(key)
         if not entry:
             return {"error": "Key not found"}, 404
-
-        if entry.get("password"):
-            if not password:
-                return {"error": "Password required"}, 401
-            hashed_input = hmac.new(
-                current_app.config["SECRET_KEY"], password.encode(), "sha256"
-            ).hexdigest()
-            if not hmac.compare_digest(hashed_input, entry["password"]):
-                return {"error": "Incorrect password"}, 403
 
         if entry.get("expires_at") and datetime.now(
             timezone.utc
@@ -245,7 +253,7 @@ def get_key(id, key):
         value = entry["value"]
         if entry.get("one_time"):
             del data["data"][key]
-        log_action(data, "read", key, request.remote_addr, token=token)
+            log_action(data, token=token, action="read", key=key, ip=request.remote_addr)            
         save_data(id, data)
         return {"key": key, "value": value}, 200
     except FileNotFoundError:
@@ -258,7 +266,19 @@ def delete_id(id):
         return {"error": "Too many requests"}, 429
     if not is_valid_id(id):
         return {"error": "Invalid ID format"}, 400
+
     token = request.args.get("token")
+    password = request.args.get("password", "")
+
+    # Load data to check if password is required
+    try:
+        data = load_data(id)
+    except FileNotFoundError:
+        return {"error": "ID not found"}, 404
+
+    # Verify password if record has one
+    if data.get("password") and not verify_password(id, password):
+        return {"error": "Invalid password"}, 403
 
     if not verify_scoped_token(token, "clear"):
         return {"error": "Delete permission denied"}, 403
@@ -276,14 +296,18 @@ def delete_key(id, key):
     if not is_valid_id(id):
         return {"error": "Invalid ID format"}, 400
     token = request.args.get("token")
+    password = request.args.get("password", "")
 
-    if not verify_scoped_token(token, "delete"):
-        return {"error": "Delete permission denied"}, 403
     try:
         data = load_data(id)
+        # Password verification before deletion
+        if data.get("password") and not verify_password(id, password):
+            return {"error": "Invalid password"}, 403
+        if not verify_scoped_token(token, "delete"):
+            return {"error": "Delete permission denied"}, 403
         if key in data["data"]:
             del data["data"][key]
-            log_action(data, "delete", key, request.remote_addr, token=token)
+            log_action(data, token=token, action="delete", key=key, ip=request.remote_addr)            
             record = Record(**data)
             save_data(id, record)
             return {"message": "Key deleted successfully"}, 200
@@ -300,13 +324,20 @@ def list_keys(id):
     if not is_valid_id(id):
         return {"error": "Invalid ID format"}, 400
     token = request.args.get("token")
-    if not verify_scoped_token(token, "read"):
-        return {"error": "Invalid read token"}, 403
+    password = request.args.get("password", "")
+
     try:
         data = load_data(id)
-        return {"keys": list(data["data"].keys())}, 200
+        # Password verification immediately after loading data
+        if data.get("password") and not verify_password(id, password):
+            return {"error": "Invalid password"}, 403
     except FileNotFoundError:
         return {"error": "ID not found"}, 404
+
+    if not verify_scoped_token(token, "read"):
+        return {"error": "Invalid read token"}, 403
+
+    return {"keys": list(data["data"].keys())}, 200
 
 
 @bp.route("/bulkset/<id>", methods=["POST"])
@@ -317,11 +348,15 @@ def bulk_set(id: str, body: BulkSetRequest):
     if not is_valid_id(id):
         return {"error": "Invalid ID format"}, 400
     token = request.args.get("token", "")
-    if not verify_scoped_token(token, "write"):
-        return {"error": "Invalid write token"}, 403
+    password = request.args.get("password", "")
 
     try:
         data = load_data(id)
+        # Password verification after loading data
+        if data.get("password") and not verify_password(id, password):
+            return {"error": "Invalid password"}, 403
+        if not verify_scoped_token(token, "write"):
+            return {"error": "Invalid write token"}, 403
         for key, value in body.root.items():
             data["data"][key] = {"value": value, "one_time": False, "password": None}
             # Fix `log_action` in bulk_set
@@ -702,6 +737,7 @@ def swagger_spec():
 @bp.route("/swagger")
 def swagger_ui():
     return render_template("swagger_ui.html")
+
 
 @bp.route("/dashboard")
 @bp.route("/dash")

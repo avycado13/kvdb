@@ -1,24 +1,22 @@
 {% extends "base.html" %}
-
 {% block title %}KVDB - Home{% endblock %}
-
 {% block content %}
-<div>
-    <h1>KVDB - Key Value Database</h1>
     <div>
+        <h1>KVDB - Key Value Database</h1>
         <div>
-            <h2>Welcome</h2>
-            <p>
-                This is a minimal HTTP key-value store. You can use the
-                <code>/create</code> endpoint to create a new data store with optional expiration and password.
-                Once you have an <code>id</code> and <code>token</code>, you can use the other endpoints like
-                <code>/set/<id></code>, <code>/get/<id>/<key></code>, and so on.
-            </p>
-            <p>
-                Visit the <a href="/endpoints">Mini Swagger UI</a> for additional tools.
-                Or visit the <a href="/dash">Dashboard</a> for a gui to create a new db
-            </p>
+            <div>
+                <h2>Welcome</h2>
+                <p>
+                    This is a minimal HTTP key-value store. You can use the
+                    <code>/create</code> endpoint to create a new data store with optional expiration and password.
+                    Once you have an <code>id</code> and <code>token</code>, you can use the other endpoints like
+                    <code>/set/<id></code>, <code>/get/<id>/<key></code>, and so on.
+                </p>
+                <p>
+                    Visit the <a href="/endpoints">Mini Swagger UI</a> for additional tools.
+                    Or visit the <a href="/dash">Dashboard</a> for a gui to create a new db
+                </p>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}
