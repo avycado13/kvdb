@@ -2,6 +2,8 @@ import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
+import shutil
+
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 from flask_pydantic import validate  # type: ignore
@@ -394,7 +396,11 @@ def clear_data():
 
     try:
         for filename in os.listdir(current_app.config["DATA_DIR"]):
-            os.remove(os.path.join(current_app.config["DATA_DIR"], filename))
+            file_path = os.path.join(current_app.config["DATA_DIR"], filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)  # Delete the file
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)  # Delete 
         return {"message": "All data Nuked successfully"}, 200
     except Exception as e:
         return {"error": str(e)}, 500
