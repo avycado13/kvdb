@@ -1,9 +1,8 @@
 import hmac
 import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
-import shutil
-
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 from flask_pydantic import validate  # type: ignore
@@ -71,7 +70,7 @@ def create(body: CreateRequest):
         audit_log=[],
     )
     save_data(id, record)
-    token = create_scoped_token(id, token_scopes, expires_in)
+    token = create_scoped_token(id, token_scopes, expires_in=expires_in)
     return jsonify({"id": id, "token": token}), 201
 
 
@@ -255,7 +254,9 @@ def get_key(id, key):
         value = entry["value"]
         if entry.get("one_time"):
             del data["data"][key]
-            log_action(data, token=token, action="read", key=key, ip=request.remote_addr)            
+            log_action(
+                data, token=token, action="read", key=key, ip=request.remote_addr
+            )
         save_data(id, data)
         return {"key": key, "value": value}, 200
     except FileNotFoundError:
@@ -309,7 +310,9 @@ def delete_key(id, key):
             return {"error": "Delete permission denied"}, 403
         if key in data["data"]:
             del data["data"][key]
-            log_action(data, token=token, action="delete", key=key, ip=request.remote_addr)            
+            log_action(
+                data, token=token, action="delete", key=key, ip=request.remote_addr
+            )
             record = Record(**data)
             save_data(id, record)
             return {"message": "Key deleted successfully"}, 200
@@ -400,7 +403,7 @@ def clear_data():
             if os.path.isfile(file_path):
                 os.remove(file_path)  # Delete the file
             elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # Delete 
+                shutil.rmtree(file_path)  # Delete
         return {"message": "All data Nuked successfully"}, 200
     except Exception as e:
         return {"error": str(e)}, 500

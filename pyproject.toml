@@ -11,6 +11,7 @@ dependencies = [
     "flask>=3.1.0",
     "flask-pydantic>=0.13.1",
     "gunicorn>=23.0.0",
+    "httpx>=0.28.1",
     "pyotp>=2.9.0",
 ]
 
